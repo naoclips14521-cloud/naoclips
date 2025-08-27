@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploader Automático de YouTube Shorts</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/cronstrue@latest/dist/cronstrue.min.js" defer></script>
+    <script src="https://unpkg.com/cron-parser@latest/dist/cron-parser.min.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Uploader Automático de YouTube Shorts</h1>
+            <p>Los clips se guardan en Google Drive y se suben a YouTube según el horario programado.</p>
+        </header>
+
+        <section class="status-panel">
+            <h2>Estado del Sistema</h2>
+            <div id="nextUpload">Cargando horario...</div>
+        </section>
+
+        <section class="uploader">
+            <h2>Subir Nuevo Clip</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="videoClip">Arrastra videos o haz clic para seleccionar</label>
+                    <input type="file" id="videoClip" name="videoClip" accept="video/*" required multiple>
+                </div>
+                <button type="submit">Añadir a la Cola</button>
+            </form>
+            <div id="uploadStatus" style="display: none;"></div>
+        </section>
+
+        <section class="queue">
+            <h2>⬇️ Cola de Subida (Orden de subida: de arriba hacia abajo)</h2>
+            <div id="queueList"><p>Cargando cola...</p></div>
+        </section>
+    </div>
+
+    <script>
+        // --- ESPERAR A QUE TODO EL CONTENIDO DE LA PÁGINA ESTÉ LISTO ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadForm = document.getElementById('uploadForm');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const queueList = document.getElementById('queueList');
+            const nextUploadDiv = document.getElementById('nextUpload');
+            let uploadInterval;
+
+            // --- MANEJAR SUBIDA DE MÚLTIPLES ARCHIVOS ---
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const files = document.getElementById('videoClip').files;
+                if (files.length === 0) {
+                    showStatus('❌ No has seleccionado ningún archivo.', 'error');
+                    return;
+                }
+
+                showStatus(`Iniciando subida de ${files.length} archivo(s)...`, 'processing');
+
+                for (let i = 0; i < files.length; i++) {
+                    const formData = new FormData();
+                    formData.append('videoClip', files[i]);
+                    
+                    try {
+                        showStatus(`Subiendo ${i + 1}/${files.length}: ${files[i].name}...`, 'processing');
+                        const response = await fetch('/upload', { method: 'POST', body: formData });
+                        
+                        if (!response.ok) {
+                           throw new Error(`El servidor respondió con un error.`);
+                        }
+                        
+                        // Refrescar la cola DESPUÉS de cada subida exitosa
+                        await fetchQueue(); 
+
+                    } catch (error) {
+                        showStatus(`❌ Error al subir ${files[i].name}.`, 'error');
+                        break; // Pausar si hay un error
+                    }
+                }
+
+                showStatus(`✅ Carga completada. ${files.length} archivo(s) añadidos a la cola.`, 'success');
+                uploadForm.reset();
+            });
+            
+            function showStatus(message, type) {
+                uploadStatus.textContent = message;
+                uploadStatus.className = `status-${type}`;
+                uploadStatus.style.display = 'block';
+            }
+
+            // --- MOSTRAR CONTADOR DE PRÓXIMA SUBIDA ---
+            async function setupCountdown() {
+                try {
+                    const response = await fetch('/schedule-info');
+                    const { schedule } = await response.json();
+
+                    if (!window.cronstrue || !window.cronParser) {
+                        nextUploadDiv.innerHTML = '<strong>Error:</strong> No se pudieron cargar las librerías de tiempo.';
+                        return;
+                    }
+
+                    const scheduleText = cronstrue.toString(schedule, { use24hourTimeFormat: true });
+                    
+                    if (uploadInterval) clearInterval(uploadInterval);
+
+                    uploadInterval = setInterval(() => {
+                        try {
+                            const interval = cronParser.parseExpression(schedule);
+                            const nextDate = interval.next().toDate();
+                            const now = new Date();
+                            const diff = nextDate - now;
+
+                            if (diff <= 0) {
+                                 nextUploadDiv.innerHTML = `<strong>Próxima subida:</strong> En cualquier momento... <br><small>Horario: ${scheduleText}</small>`;
+                                 return;
+                            }
+
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                            nextUploadDiv.innerHTML = `<strong>Próxima subida en:</strong> ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} <br><small>Horario: ${scheduleText} (${schedule})</small>`;
+                        } catch (err) {
+                            nextUploadDiv.innerHTML = `<strong>Horario inválido en el navegador:</strong> ${schedule}`;
+                            clearInterval(uploadInterval);
+                        }
+                    }, 1000);
+                } catch (error) {
+                    nextUploadDiv.textContent = 'Error al cargar el horario desde el servidor.';
+                }
+            }
+
+            // --- OBTENER Y MOSTRAR LA COLA DE VIDEOS ---
+            const fetchQueue = async () => {
+                try {
+                    const response = await fetch('/queue');
+                    const videos = await response.json();
+                    queueList.innerHTML = '';
+
+                    if (videos.length === 0) {
+                        queueList.innerHTML = '<p>La cola está vacía. ¡Sube un video!</p>';
+                        return;
+                    }
+
+                    videos.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = `video-item status-${video.status}`;
+                        let statusEmoji = '❓';
+                        if (video.status === 'pending') statusEmoji = '⏳';
+                        if (video.status === 'processing') statusEmoji = '🚀';
+                        if (video.status === 'uploaded') statusEmoji = '✅';
+                        if (video.status === 'failed') statusEmoji = '❌';
+
+                        videoElement.innerHTML = `
+                            <div class="video-info">
+                                <strong>${video.title || video.originalName}</strong>
+                                <small>Añadido: ${new Date(video.createdAt).toLocaleString()}</small>
+                            </div>
+                            <div class="video-status">
+                                ${statusEmoji} ${video.status}
+                            </div>
+                            ${video.status === 'uploaded' ? `<a href="${video.youtubeUrl}" target="_blank">Ver en YouTube</a>` : ''}
+                        `;
+                        queueList.appendChild(videoElement);
+                    });
+                } catch (error) {
+                    queueList.innerHTML = '<p>Error al cargar la cola.</p>';
+                }
+            };
+
+            // --- INICIALIZACIÓN ---
+            setupCountdown();
+            fetchQueue();
+            setInterval(fetchQueue, 15000); // Refrescar la cola periódicamente por si acaso
+        });
+    </script>
+</body>
+</html>

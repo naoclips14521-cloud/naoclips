@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoaClips - Estadísticas</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">✨ NoaClips ✨</h1>
+            <p class="subtitle">Estadísticas de Subida</p>
+        </header>
+
+        <nav class="main-nav">
+            <a href="/"> <i class="fas fa-home"></i> Uploader</a>
+            <a href="/stats.html" class="active"> <i class="fas fa-chart-pie"></i> Estadísticas</a>
+            <div id="userInfo">Cargando...</div>
+            <a href="/logout"> <i class="fas fa-sign-out-alt"></i> Salir</a>
+        </nav>
+
+        <section class="card stats-grid">
+            <div class="stat-box">
+                <h3>Total Subidos</h3>
+                <p id="totalUploaded">0</p>
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-box">
+                <h3>En Proceso</h3>
+                <p id="totalProcessing">0</p>
+                <i class="fas fa-rocket"></i>
+            </div>
+            <div class="stat-box">
+                <h3>Pendientes en Cola</h3>
+                <p id="totalPending">0</p>
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2><i class="fas fa-users"></i> Videos Subidos por Usuario</h2>
+            <div id="uploadsByUser" class="user-stats-list">
+                <p>Cargando datos...</p>
+            </div>
+        </section>
+
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            async function fetchStats() {
+                try {
+                    const response = await fetch('/api/stats');
+                    if (!response.ok) {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    const stats = await response.json();
+
+                    document.getElementById('totalUploaded').textContent = stats.totalUploaded;
+                    document.getElementById('totalProcessing').textContent = stats.totalProcessing;
+                    document.getElementById('totalPending').textContent = stats.totalPending;
+                    
+                    const userList = document.getElementById('uploadsByUser');
+                    userList.innerHTML = '';
+                    if (stats.uploadsByUser.length > 0) {
+                        stats.uploadsByUser.forEach(user => {
+                            const userEl = document.createElement('div');
+                            userEl.className = 'user-stat-item';
+                            userEl.innerHTML = `
+                                <span><i class="fas fa-user"></i> ${user._id}</span>
+                                <strong>${user.count} videos</strong>
+                            `;
+                            userList.appendChild(userEl);
+                        });
+                    } else {
+                        userList.innerHTML = '<p class="empty-queue"><i class="fas fa-box-open"></i> Aún no hay videos subidos.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error al cargar estadísticas:', error);
+                    document.getElementById('uploadsByUser').innerHTML = '<p class="empty-queue error-message">Error al cargar datos.</p>';
+                }
+            }
+
+            async function fetchSession() {
+                try {
+                    const response = await fetch('/api/session');
+                    if (!response.ok) {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    const data = await response.json();
+                    document.getElementById('userInfo').innerHTML = `<i class="fas fa-user-circle"></i> ${data.user.username}`;
+                } catch (error) {
+                    window.location.href = '/login.html';
+                }
+            }
+
+            fetchStats();
+            fetchSession();
+        });
+    </script>
+</body>
+</html>

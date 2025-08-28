@@ -17,7 +17,7 @@
   "display": "standalone",
   "background_color": "#2a9d8f",
   "theme_color": "#2a9d8f",
-  "start_url": "/admin_login.html",
+  "start_url": "/login.html",
   "scope": "/",
   "orientation": "portrait"
 }

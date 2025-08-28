@@ -2,8 +2,8 @@ const CACHE_NAME = 'veterinaria-pwa-v1';
 const ASSETS = [
   '/',
   '/index.html',
-  '/admin_login.html',
-  '/admin.html',
+  '/stats.html',
+  '/login.html',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'
 ];

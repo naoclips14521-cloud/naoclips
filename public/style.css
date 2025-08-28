@@ -1,136 +1,484 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+/* Paleta de colores */
+:root {
+    --primary-color: #e62117; /* Rojo de YouTube */
+    --secondary-color: #28a745; /* Verde para éxito */
+    --tertiary-color: #ffc107; /* Amarillo para pendiente */
+    --info-color: #17a2b8; /* Azul para proceso/info */
+    --danger-color: #dc3545; /* Rojo oscuro para fallo */
+    --dark-bg: #212529; /* Fondo oscuro */
+    --light-bg: #f8f9fa; /* Fondo claro */
+    --card-bg: #ffffff; /* Fondo de tarjetas */
+    --text-color: #343a40; /* Color de texto principal */
+    --light-text-color: #6c757d; /* Color de texto secundario */
+    --border-color: #e0e0e0; /* Color de bordes */
+}
+
+/* Reset y base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #f4f7f9;
-    color: #333;
-    margin: 0;
-    padding: 20px;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* Alinea al inicio para scroll en pantallas grandes */
+    padding: 20px;
 }
 
 .container {
-    max-width: 800px;
+    max-width: 900px;
     width: 100%;
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: transparent; /* El fondo lo tienen las tarjetas ahora */
+    padding: 0; /* Las tarjetas tienen su propio padding */
+    border-radius: 12px;
+    display: grid;
+    gap: 25px;
 }
 
+/* Encabezado */
 header {
     text-align: center;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 20px;
     margin-bottom: 20px;
 }
 
-h1 {
-    color: #d32f2f;
-    margin: 0;
+.logo {
+    font-size: 2.8em;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-h2 {
-    color: #333;
-    border-bottom: 1px solid #eee;
+.subtitle {
+    font-size: 1.2em;
+    color: var(--light-text-color);
+    margin-top: -5px;
+}
+
+/* Estilo de tarjeta general */
+.card {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card h2 {
+    font-size: 1.8em;
+    color: var(--text-color);
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
-    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
+.card h2 i {
+    color: var(--primary-color);
+    font-size: 0.9em;
+}
+
+/* Panel de estado */
+.status-panel .status-info {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: var(--info-color);
+    text-align: center;
+    padding: 15px;
+    background-color: #eaf6f8;
+    border-radius: 8px;
+    border: 1px solid var(--info-color);
+}
+
+.status-panel .status-info i {
+    margin-right: 8px;
+}
+
+.status-panel .location {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: var(--light-text-color);
+    text-align: center;
+}
+
+.status-panel .location i {
+    margin-right: 5px;
+}
+
+/* Formulario de subida */
 .form-group {
+    margin-bottom: 25px;
+}
+
+.drop-zone {
+    border: 3px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #fcfcfc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+}
+
+.drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background-color: #fff0f0;
+}
+
+.drop-zone i {
+    font-size: 3.5em;
+    color: var(--light-text-color);
     margin-bottom: 15px;
 }
 
-label {
-    display: block;
-    font-weight: 700;
-    margin-bottom: 5px;
+.drop-zone p {
+    font-size: 1.1em;
+    color: var(--light-text-color);
+    font-weight: 600;
 }
 
-input[type="text"],
-textarea,
-input[type="file"] {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 16px;
-}
-
-textarea {
-    resize: vertical;
-}
-
-button {
-    background-color: #d32f2f;
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 700;
-    transition: background-color 0.3s;
-}
-
-button:hover {
-    background-color: #b71c1c;
-}
-
-#uploadStatus {
+.file-names {
     margin-top: 15px;
     padding: 10px;
-    border-radius: 5px;
-    font-weight: 700;
-    display: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-height: 40px;
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    font-size: 0.9em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
 }
 
-#uploadStatus.status-processing { display: block; background-color: #e0f7fa; color: #00796b; }
-#uploadStatus.status-success { display: block; background-color: #e8f5e9; color: #2e7d32; }
-#uploadStatus.status-error { display: block; background-color: #ffebee; color: #c62828; }
+.file-names span {
+    background-color: #e2e6ea;
+    padding: 5px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
 
 
-.queue #queueList {
+.btn {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 14px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn:hover:not(:disabled) {
+    background-color: #b01a11;
+    transform: translateY(-2px);
+}
+
+.btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.status-message {
     margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-message.status-processing { background-color: #e0f7fa; color: var(--info-color); border: 1px solid var(--info-color); }
+.status-message.status-success { background-color: #e8f5e9; color: var(--secondary-color); border: 1px solid var(--secondary-color); }
+.status-message.status-error { background-color: #ffebee; color: var(--danger-color); border: 1px solid var(--danger-color); }
+
+/* Cola de videos */
+.queue-info {
+    font-size: 0.95em;
+    color: var(--light-text-color);
+    margin-bottom: 20px;
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.empty-queue, .error-message {
+    text-align: center;
+    color: var(--light-text-color);
+    font-style: italic;
+    padding: 20px;
+    background-color: var(--light-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+}
+.empty-queue i, .error-message i {
+    margin-right: 8px;
+    color: var(--light-text-color);
 }
 
 .video-item {
     display: flex;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #eee;
+    padding: 18px;
+    border-radius: 10px;
+    background-color: var(--light-bg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+    position: relative;
+    overflow: hidden; /* Para el pseudo-elemento */
 }
 
-.video-item:last-child {
-    border-bottom: none;
+.video-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: var(--border-color); /* Color por defecto */
+    transition: background-color 0.2s ease;
+}
+
+.video-item.status-pending::before { background-color: var(--tertiary-color); }
+.video-item.status-processing::before { background-color: var(--info-color); }
+.video-item.status-uploaded::before { background-color: var(--secondary-color); }
+.video-item.status-failed::before { background-color: var(--danger-color); }
+
+
+.video-item:hover {
+    transform: translateY(-3px);
+}
+
+.video-info {
+    flex: 1 1 60%; /* Ocupa más espacio */
+    margin-right: 15px;
+    min-width: 200px; /* Asegura un ancho mínimo para el título */
 }
 
 .video-info strong {
     display: block;
+    font-size: 1.1em;
+    color: var(--text-color);
+    margin-bottom: 5px;
+    word-break: break-word; /* Rompe palabras largas */
 }
 
 .video-info small {
-    color: #777;
+    color: var(--light-text-color);
+    font-size: 0.85em;
 }
 
 .video-status {
     font-weight: 700;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap; /* Evita que el estado se rompa en varias líneas */
 }
 
-.status-pending .video-status { background-color: #fffde7; color: #f57f17; }
-.status-processing .video-status { background-color: #e1f5fe; color: #0277bd; }
-.status-uploaded .video-status { background-color: #e8f5e9; color: #2e7d32; }
-.status-failed .video-status { background-color: #ffebee; color: #c62828; }
+.video-status i {
+    font-size: 1.1em;
+}
 
-.video-item a {
+.status-pending .video-status { background-color: #fff8e1; color: var(--tertiary-color); }
+.status-processing .video-status { background-color: #e1f5fe; color: var(--info-color); }
+.status-uploaded .video-status { background-color: #e8f5e9; color: var(--secondary-color); }
+.status-failed .video-status { background-color: #ffebee; color: var(--danger-color); }
+
+.youtube-link {
     margin-left: 20px;
     text-decoration: none;
-    color: #d32f2f;
-    font-weight: 700;
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.youtube-link:hover {
+    color: #b01a11;
+}
+
+/* Media Queries para Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    .container {
+        gap: 20px;
+    }
+
+    .card {
+        padding: 25px 20px;
+    }
+
+    .card h2 {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+    }
+
+    .logo {
+        font-size: 2.2em;
+    }
+
+    .subtitle {
+        font-size: 1em;
+    }
+
+    .drop-zone {
+        padding: 30px 15px;
+        min-height: 120px;
+    }
+    .drop-zone i {
+        font-size: 3em;
+    }
+    .drop-zone p {
+        font-size: 1em;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+
+    .status-panel .status-info {
+        font-size: 1.1em;
+    }
+    .status-panel .location {
+        font-size: 0.8em;
+    }
+
+    .video-item {
+        flex-direction: column; /* Apila elementos verticalmente */
+        align-items: flex-start;
+        padding: 15px;
+        gap: 10px; /* Espacio entre los elementos apilados */
+    }
+
+    .video-info {
+        width: 100%; /* Ocupa todo el ancho disponible */
+        margin-right: 0;
+        margin-bottom: 5px; /* Espacio antes del estado */
+    }
+
+    .video-status {
+        width: 100%;
+        justify-content: center; /* Centra el estado */
+    }
+
+    .youtube-link {
+        margin-left: 0;
+        margin-top: 10px; /* Separa del estado */
+        width: 100%;
+        justify-content: center; /* Centra el link */
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        gap: 15px;
+    }
+
+    .card {
+        padding: 20px 15px;
+    }
+
+    .card h2 {
+        font-size: 1.3em;
+    }
+
+    .logo {
+        font-size: 1.8em;
+    }
+
+    .subtitle {
+        font-size: 0.9em;
+    }
+
+    .drop-zone {
+        padding: 20px 10px;
+        min-height: 100px;
+    }
+    .drop-zone i {
+        font-size: 2.5em;
+    }
+    .drop-zone p {
+        font-size: 0.9em;
+    }
+
+    .btn {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+
+    .status-panel .status-info {
+        font-size: 1em;
+    }
+    .status-panel .location {
+        font-size: 0.75em;
+    }
+
+    .video-info strong {
+        font-size: 1em;
+    }
+    .video-info small {
+        font-size: 0.8em;
+    }
+
+    .video-status {
+        font-size: 0.8em;
+        padding: 6px 10px;
+    }
+
+    .youtube-link {
+        font-size: 0.85em;
+    }
 }

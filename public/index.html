@@ -3,60 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uploader Automático de YouTube Shorts</title>
+    <title>NoaClips - Uploader Automático de Shorts</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://unpkg.com/cronstrue@latest/dist/cronstrue.min.js" defer></script>
     <script src="https://unpkg.com/cron-parser@latest/dist/cron-parser.min.js" defer></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎬 Uploader Automático de YouTube Shorts</h1>
-            <p>Los clips se guardan en Google Drive y se suben a YouTube según el horario programado.</p>
+            <h1 class="logo">✨ NoaClips ✨</h1>
+            <p class="subtitle">Tu asistente automático para YouTube Shorts</p>
         </header>
 
-        <section class="status-panel">
-            <h2>Estado del Sistema</h2>
-            <div id="nextUpload">Cargando horario...</div>
+        <section class="card status-panel">
+            <h2><i class="fas fa-chart-line"></i> Estado del Sistema</h2>
+            <div id="nextUpload" class="status-info">
+                <i class="fas fa-spinner fa-spin"></i> Cargando horario...
+            </div>
+            <p class="location"><i class="fas fa-map-marker-alt"></i> Ubicación del servidor: Capiatá, Central Department, Paraguay</p>
         </section>
 
-        <section class="uploader">
-            <h2>Subir Nuevo Clip</h2>
+        <section class="card uploader">
+            <h2><i class="fas fa-cloud-upload-alt"></i> Subir Nuevo Clip</h2>
             <form id="uploadForm">
                 <div class="form-group">
-                    <label for="videoClip">Arrastra videos o haz clic para seleccionar</label>
-                    <input type="file" id="videoClip" name="videoClip" accept="video/*" required multiple>
+                    <label for="videoClip" class="drop-zone" id="dropZone">
+                        <i class="fas fa-film"></i>
+                        <p>Arrastra videos aquí o haz clic para seleccionar</p>
+                        <input type="file" id="videoClip" name="videoClip" accept="video/*" required multiple style="display: none;">
+                    </label>
+                    <div id="fileNames" class="file-names"></div>
                 </div>
-                <button type="submit">Añadir a la Cola</button>
+                <button type="submit" class="btn"><i class="fas fa-plus-circle"></i> Añadir a la Cola</button>
             </form>
-            <div id="uploadStatus" style="display: none;"></div>
+            <div id="uploadStatus" class="status-message" style="display: none;"></div>
         </section>
 
-        <section class="queue">
-            <h2>⬇️ Cola de Subida (Orden de subida: de arriba hacia abajo)</h2>
-            <div id="queueList"><p>Cargando cola...</p></div>
+        <section class="card queue">
+            <h2><i class="fas fa-list-ol"></i> Cola de Subida</h2>
+            <p class="queue-info">Los videos se suben en el orden en que fueron añadidos (de arriba hacia abajo).</p>
+            <div id="queueList" class="queue-list"><p>Cargando cola...</p></div>
         </section>
     </div>
 
     <script>
-        // --- ESPERAR A QUE TODO EL CONTENIDO DE LA PÁGINA ESTÉ LISTO ---
         document.addEventListener('DOMContentLoaded', () => {
             const uploadForm = document.getElementById('uploadForm');
             const uploadStatus = document.getElementById('uploadStatus');
             const queueList = document.getElementById('queueList');
             const nextUploadDiv = document.getElementById('nextUpload');
+            const videoClipInput = document.getElementById('videoClip');
+            const dropZone = document.getElementById('dropZone');
+            const fileNamesContainer = document.getElementById('fileNames');
             let uploadInterval;
+
+            // --- DRAG & DROP Y SELECCIÓN DE ARCHIVOS ---
+            dropZone.addEventListener('click', () => videoClipInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                videoClipInput.files = e.dataTransfer.files;
+                displaySelectedFiles(e.dataTransfer.files);
+            });
+
+            videoClipInput.addEventListener('change', (e) => {
+                displaySelectedFiles(e.target.files);
+            });
+
+            function displaySelectedFiles(files) {
+                fileNamesContainer.innerHTML = '';
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        const fileItem = document.createElement('span');
+                        fileItem.textContent = files[i].name;
+                        fileNamesContainer.appendChild(fileItem);
+                    }
+                }
+            }
+
 
             // --- MANEJAR SUBIDA DE MÚLTIPLES ARCHIVOS ---
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const files = document.getElementById('videoClip').files;
+                const files = videoClipInput.files;
                 if (files.length === 0) {
                     showStatus('❌ No has seleccionado ningún archivo.', 'error');
                     return;
                 }
 
                 showStatus(`Iniciando subida de ${files.length} archivo(s)...`, 'processing');
+                uploadForm.querySelector('button').disabled = true; // Deshabilitar botón
+                videoClipInput.disabled = true;
 
                 for (let i = 0; i < files.length; i++) {
                     const formData = new FormData();
@@ -70,22 +119,24 @@
                            throw new Error(`El servidor respondió con un error.`);
                         }
                         
-                        // Refrescar la cola DESPUÉS de cada subida exitosa
-                        await fetchQueue(); 
+                        await fetchQueue(); // Refrescar la cola DESPUÉS de cada subida exitosa
 
                     } catch (error) {
-                        showStatus(`❌ Error al subir ${files[i].name}.`, 'error');
+                        showStatus(`❌ Error al subir ${files[i].name}: ${error.message}`, 'error');
                         break; // Pausar si hay un error
                     }
                 }
 
                 showStatus(`✅ Carga completada. ${files.length} archivo(s) añadidos a la cola.`, 'success');
                 uploadForm.reset();
+                fileNamesContainer.innerHTML = ''; // Limpiar nombres de archivos
+                uploadForm.querySelector('button').disabled = false; // Habilitar botón
+                videoClipInput.disabled = false;
             });
             
             function showStatus(message, type) {
                 uploadStatus.textContent = message;
-                uploadStatus.className = `status-${type}`;
+                uploadStatus.className = `status-message status-${type}`;
                 uploadStatus.style.display = 'block';
             }
 
@@ -95,8 +146,9 @@
                     const response = await fetch('/schedule-info');
                     const { schedule } = await response.json();
 
+                    // Asegurarse de que las librerías estén cargadas antes de usarlas
                     if (!window.cronstrue || !window.cronParser) {
-                        nextUploadDiv.innerHTML = '<strong>Error:</strong> No se pudieron cargar las librerías de tiempo.';
+                        setTimeout(setupCountdown, 100); // Reintentar en 100ms
                         return;
                     }
 
@@ -112,7 +164,8 @@
                             const diff = nextDate - now;
 
                             if (diff <= 0) {
-                                 nextUploadDiv.innerHTML = `<strong>Próxima subida:</strong> En cualquier momento... <br><small>Horario: ${scheduleText}</small>`;
+                                 nextUploadDiv.innerHTML = `<i class="fas fa-hourglass-start"></i> <strong>Próxima subida:</strong> En cualquier momento... <br><small>Horario: ${scheduleText}</small>`;
+                                 fetchQueue(); // Forzar actualización de cola si el cron acaba de pasar
                                  return;
                             }
 
@@ -120,14 +173,14 @@
                             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-                            nextUploadDiv.innerHTML = `<strong>Próxima subida en:</strong> ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} <br><small>Horario: ${scheduleText} (${schedule})</small>`;
+                            nextUploadDiv.innerHTML = `<i class="far fa-clock"></i> <strong>Próxima subida en:</strong> ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} <br><small>Horario: ${scheduleText} (${schedule})</small>`;
                         } catch (err) {
-                            nextUploadDiv.innerHTML = `<strong>Horario inválido en el navegador:</strong> ${schedule}`;
+                            nextUploadDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Horario inválido en el navegador:</strong> ${schedule}`;
                             clearInterval(uploadInterval);
                         }
                     }, 1000);
                 } catch (error) {
-                    nextUploadDiv.textContent = 'Error al cargar el horario desde el servidor.';
+                    nextUploadDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error al cargar el horario desde el servidor.`;
                 }
             }
 
@@ -139,18 +192,24 @@
                     queueList.innerHTML = '';
 
                     if (videos.length === 0) {
-                        queueList.innerHTML = '<p>La cola está vacía. ¡Sube un video!</p>';
+                        queueList.innerHTML = '<p class="empty-queue"><i class="fas fa-box-open"></i> La cola está vacía. ¡Sube tu primer clip!</p>';
                         return;
                     }
 
                     videos.forEach(video => {
                         const videoElement = document.createElement('div');
                         videoElement.className = `video-item status-${video.status}`;
-                        let statusEmoji = '❓';
-                        if (video.status === 'pending') statusEmoji = '⏳';
-                        if (video.status === 'processing') statusEmoji = '🚀';
-                        if (video.status === 'uploaded') statusEmoji = '✅';
-                        if (video.status === 'failed') statusEmoji = '❌';
+                        
+                        let statusEmoji = '';
+                        let statusText = video.status.charAt(0).toUpperCase() + video.status.slice(1);
+
+                        switch(video.status) {
+                            case 'pending': statusEmoji = '<i class="fas fa-hourglass-half"></i>'; break;
+                            case 'processing': statusEmoji = '<i class="fas fa-rocket"></i>'; break;
+                            case 'uploaded': statusEmoji = '<i class="fas fa-check-circle"></i>'; break;
+                            case 'failed': statusEmoji = '<i class="fas fa-times-circle"></i>'; break;
+                            default: statusEmoji = '<i class="fas fa-question-circle"></i>'; break;
+                        }
 
                         videoElement.innerHTML = `
                             <div class="video-info">
@@ -158,21 +217,21 @@
                                 <small>Añadido: ${new Date(video.createdAt).toLocaleString()}</small>
                             </div>
                             <div class="video-status">
-                                ${statusEmoji} ${video.status}
+                                ${statusEmoji} ${statusText}
                             </div>
-                            ${video.status === 'uploaded' ? `<a href="${video.youtubeUrl}" target="_blank">Ver en YouTube</a>` : ''}
+                            ${video.status === 'uploaded' ? `<a href="${video.youtubeUrl}" target="_blank" class="youtube-link"><i class="fab fa-youtube"></i> Ver</a>` : ''}
                         `;
                         queueList.appendChild(videoElement);
                     });
                 } catch (error) {
-                    queueList.innerHTML = '<p>Error al cargar la cola.</p>';
+                    queueList.innerHTML = '<p class="error-message"><i class="fas fa-exclamation-circle"></i> Error al cargar la cola.</p>';
                 }
             };
 
             // --- INICIALIZACIÓN ---
             setupCountdown();
             fetchQueue();
-            setInterval(fetchQueue, 15000); // Refrescar la cola periódicamente por si acaso
+            setInterval(fetchQueue, 15000);
         });
     </script>
 </body>

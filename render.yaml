@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: naoclips
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    buildpacks:
+      - url: https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest

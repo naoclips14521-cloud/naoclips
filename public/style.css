@@ -2,8 +2,9 @@
 :root {
     --primary-color: #e62117;
     --secondary-color: #28a745;
-    --tertiary-color: #ffc107;
-    --info-color: #17a2b8;
+    --tertiary-color: #ffc107; /* Amarillo para pendiente/editado */
+    --info-color: #17a2b8; /* Azul para proceso */
+    --magic-color: #6f42c1; /* Púrpura para editando */
     --danger-color: #dc3545;
     --card-bg: #ffffff;
     --text-color: #343a40;
@@ -101,8 +102,7 @@ input[type="file"] {
 
 .status-message { margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: 600; }
 .status-processing { background-color: #e1f5fe; color: var(--info-color); }
-.status-success { background-color: #e8f5e9; color: var(--secondary-color); }
-.status-success-final { background-color: #e8f5e9; color: var(--secondary-color); border: 2px solid var(--secondary-color); }
+.status-success { background-color: #e8f5e9; color: var(--secondary-color); border: 2px solid var(--secondary-color); }
 .status-error { background-color: #ffebee; color: var(--danger-color); }
 
 /* Cola de videos */
@@ -113,13 +113,16 @@ input[type="file"] {
 
 .video-item { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 18px; border-radius: 10px; background-color: #f8f9fa; border-left: 5px solid; }
 .video-item.status-pending { border-color: var(--tertiary-color); }
-.video-item.status-processing { border-color: var(--info-color); }
+.video-item.status-editing { border-color: var(--magic-color); }
+.video-item.status-edited { border-color: var(--tertiary-color); }
+.video-item.status-processing_upload { border-color: var(--info-color); }
 .video-item.status-uploaded { border-color: var(--secondary-color); }
 .video-item.status-failed { border-color: var(--danger-color); }
 
 .video-info { flex: 1 1 60%; margin-right: 15px; }
 .video-info strong { display: block; word-break: break-all; }
 .video-info small { color: var(--light-text-color); font-size: 0.85em; }
+
 .video-status { font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .youtube-link { margin-left: 20px; text-decoration: none; color: var(--primary-color); font-weight: 600; }
 

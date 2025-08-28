@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoaClips - Uploader Automático</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="/manifest.json">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -113,7 +112,7 @@
                     }
                 }
                 
-                showStatus(`✅ ¡Listo! ${files.length} archivo(s) están en el servidor. Ya puedes cerrar esta ventana si quieres.`, 'success');
+                showStatus(`✅ ¡Listo! ${files.length} archivo(s) están en la cola de edición. Ya puedes cerrar esta ventana.`, 'success');
                 uploadForm.reset();
                 fileNamesContainer.innerHTML = '';
                 submitButton.disabled = false;
@@ -166,8 +165,7 @@
                 }
             }
 
-            const fetchQueue = async () =>
-                 {
+            const fetchQueue = async () => {
                 try {
                     const response = await fetch('/api/queue');
                     if (!response.ok) {
@@ -184,13 +182,35 @@
                     videos.forEach(video => {
                         const item = document.createElement('div');
                         item.className = `video-item status-${video.status}`;
-                        const statusText = video.status.charAt(0).toUpperCase() + video.status.slice(1);
+                        let statusText = video.status.charAt(0).toUpperCase() + video.status.slice(1);
                         let statusIcon = '';
+                        
+                        // CAMBIO AQUÍ: Añadimos los nuevos estados
                         switch(video.status) {
-                            case 'pending': statusIcon = '<i class="fas fa-hourglass-half"></i>'; break;
-                            case 'processing': statusIcon = '<i class="fas fa-rocket"></i>'; break;
-                            case 'uploaded': statusIcon = '<i class="fas fa-check-circle"></i>'; break;
-                            case 'failed': statusIcon = '<i class="fas fa-times-circle"></i>'; break;
+                            case 'pending':
+                                statusIcon = '<i class="fas fa-hourglass-start"></i>';
+                                statusText = 'Pendiente de Edición';
+                                break;
+                            case 'editing':
+                                statusIcon = '<i class="fas fa-magic"></i>';
+                                statusText = 'Editando Video';
+                                break;
+                            case 'edited':
+                                statusIcon = '<i class="fas fa-check"></i>';
+                                statusText = 'Editado, listo para subir';
+                                break;
+                            case 'processing_upload':
+                                statusIcon = '<i class="fas fa-rocket"></i>';
+                                statusText = 'Subiendo a YouTube';
+                                break;
+                            case 'uploaded':
+                                statusIcon = '<i class="fas fa-check-circle"></i>';
+                                statusText = 'Subido';
+                                break;
+                            case 'failed':
+                                statusIcon = '<i class="fas fa-times-circle"></i>';
+                                statusText = 'Falló';
+                                break;
                         }
                         item.innerHTML = `
                             <div class="video-info">
@@ -224,7 +244,7 @@
             fetchSession();
             setupCountdown();
             fetchQueue();
-            setInterval(fetchQueue, 15000);
+            setInterval(fetchQueue, 5000); // Actualizamos más seguido para ver los cambios de estado
         });
     </script>
 </body>

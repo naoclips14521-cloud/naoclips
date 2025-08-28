@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoaClips - Uploader Automático de Shorts</title>
     <link rel="stylesheet" href="style.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://unpkg.com/cronstrue@latest/dist/cronstrue.min.js" defer></script>
     <script src="https://unpkg.com/cron-parser@latest/dist/cron-parser.min.js" defer></script>
@@ -22,7 +24,6 @@
             <div id="nextUpload" class="status-info">
                 <i class="fas fa-spinner fa-spin"></i> Cargando horario...
             </div>
-            <p class="location"><i class="fas fa-map-marker-alt"></i> Ubicación del servidor: Capiatá, Central Department, Paraguay</p>
         </section>
 
         <section class="card uploader">
@@ -32,7 +33,7 @@
                     <label for="videoClip" class="drop-zone" id="dropZone">
                         <i class="fas fa-film"></i>
                         <p>Arrastra videos aquí o haz clic para seleccionar</p>
-                        <input type="file" id="videoClip" name="videoClip" accept="video/*" required multiple style="display: none;">
+                        <input type="file" id="videoClip" name="videoClip" accept="video/*" required multiple>
                     </label>
                     <div id="fileNames" class="file-names"></div>
                 </div>
@@ -49,6 +50,7 @@
     </div>
 
     <script>
+        // ... (todo el script que ya tenías) ...
         document.addEventListener('DOMContentLoaded', () => {
             const uploadForm = document.getElementById('uploadForm');
             const uploadStatus = document.getElementById('uploadStatus');

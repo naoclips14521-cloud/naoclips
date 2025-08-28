@@ -9,7 +9,6 @@ const { google } = require('googleapis');
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-const { Readable } = require('stream');
 
 // --- CONFIGURACIÓN INICIAL ---
 const app = express();
@@ -25,8 +24,9 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 
 const videoSchema = new mongoose.Schema({
     originalName: String,
-    driveFileId: String, // Cambiamos filePath por el ID de Drive
+    driveFileId: String,
     title: String,
+    description: String, // Añadimos el campo de descripción al Schema
     status: {
         type: String,
         enum: ['pending', 'processing', 'uploaded', 'failed'],
@@ -37,8 +37,8 @@ const videoSchema = new mongoose.Schema({
 });
 const Video = mongoose.model('Video', videoSchema);
 
-// --- ALMACENAMIENTO TEMPORAL (MULTER) ---
-const upload = multer({ dest: 'uploads/' }); // Lo guardamos temporalmente en local
+// --- ALMACENamiento TEMPORAL (MULTER) ---
+const upload = multer({ dest: 'uploads/' });
 
 // --- AUTENTICACIÓN CON GOOGLE ---
 const CLIENT_SECRET_PATH = path.join(__dirname, 'client_secret.json');
@@ -49,7 +49,6 @@ const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_u
 const token = JSON.parse(fs.readFileSync(TOKEN_PATH));
 oAuth2Client.setCredentials(token);
 
-// Servicios de Google
 const youtube = google.youtube({ version: 'v3', auth: oAuth2Client });
 const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
@@ -59,14 +58,14 @@ async function uploadToDrive(filePath, fileName) {
     const response = await drive.files.create({
         requestBody: {
             name: fileName,
-            parents: [], // Sube a la carpeta raíz de "Mi unidad"
+            parents: [],
         },
         media: {
             mimeType: 'video/mp4',
             body: fs.createReadStream(filePath),
         },
     });
-    fs.unlinkSync(filePath); // Borramos el archivo local temporal
+    fs.unlinkSync(filePath);
     console.log(`✅ Archivo guardado en Drive con ID: ${response.data.id}`);
     return response.data.id;
 }
@@ -86,12 +85,16 @@ app.post('/upload', upload.single('videoClip'), async (req, res) => {
 
     try {
         const driveFileId = await uploadToDrive(req.file.path, req.file.originalname);
-        const autoTitle = path.parse(req.file.originalname).name; // Título sin extensión
+        const autoTitle = path.parse(req.file.originalname).name;
+
+        // --- CAMBIO AQUÍ: Texto predeterminado ---
+        const defaultDescription = "Sígueme en mis redes!\n\nTikTok: NoaClips\nYouTube: NoaClips";
 
         const newVideo = new Video({
             originalName: req.file.originalname,
             driveFileId: driveFileId,
-            title: autoTitle, // YouTube requiere un título, usamos el nombre del archivo
+            title: autoTitle,
+            description: defaultDescription, // Se asigna la descripción por defecto
             status: 'pending'
         });
 
@@ -112,7 +115,6 @@ app.get('/queue', async (req, res) => {
     }
 });
 
-// Endpoint para que el frontend sepa el schedule
 app.get('/schedule-info', (req, res) => {
     res.json({ schedule: process.env.CRON_SCHEDULE });
 });
@@ -120,7 +122,7 @@ app.get('/schedule-info', (req, res) => {
 
 // --- LÓGICA DE SUBIDA A YOUTUBE ---
 async function uploadToYouTube(video) {
-    console.log(`🚀 Empezando la subida a YouTube de: "${video.title}" (Drive ID: ${video.driveFileId})`);
+    console.log(`🚀 Empezando la subida a YouTube de: "${video.title}"`);
     await Video.findByIdAndUpdate(video._id, { status: 'processing' });
 
     try {
@@ -133,8 +135,8 @@ async function uploadToYouTube(video) {
             part: 'snippet,status',
             requestBody: {
                 snippet: {
-                    title: video.title, // Un título es obligatorio
-                    description: '',
+                    title: video.title,
+                    description: video.description, // Usamos la descripción guardada
                 },
                 status: { privacyStatus: 'public' },
             },
@@ -149,7 +151,6 @@ async function uploadToYouTube(video) {
         await Video.findByIdAndUpdate(video._id, { status: 'uploaded', youtubeUrl });
         console.log(`✅ Video "${video.title}" subido con éxito: ${youtubeUrl}`);
         
-        // Borramos de Google Drive después de subir a YouTube
         await deleteFromDrive(video.driveFileId);
 
     } catch (error) {

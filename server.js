@@ -235,33 +235,55 @@ app.post('/upload', checkAuth, upload.single('videoClip'), async (req, res) => {
     }
 });
 
-// --- CRON JOB MODIFICADO ---
+// --- CRON JOB MODIFICADO Y CORREGIDO ---
 cron.schedule(process.env.CRON_SCHEDULE, async () => {
     console.log(`\n⏰ Cron job de YouTube ejecutándose...`);
-    const isUploading = await Video.findOne({ status: 'processing_upload' });
-    if (isUploading) {
-        console.log('--- Ya hay un video subiéndose a YouTube.');
-        return;
-    }
-    const nextVideoToUpload = await Video.findOne({ status: 'edited' }).sort({ createdAt: 1 });
-    if (nextVideoToUpload) {
-        await uploadToYouTube(nextVideoToUpload);
+
+    // El problema de la "condición de carrera" se soluciona aquí.
+    // findOneAndUpdate es una operación "atómica": busca un video con estado 'edited'
+    // y lo cambia a 'processing_upload' en un solo paso.
+    // Si dos cron jobs se ejecutan a la vez, solo uno de ellos tendrá éxito al hacer esto.
+    const videoToUpload = await Video.findOneAndUpdate(
+        { status: 'edited' },
+        { $set: { status: 'processing_upload' } },
+        {
+            new: true, // Devuelve el documento ya modificado.
+            sort: { createdAt: 1 } // Se asegura de tomar el video más antiguo.
+        }
+    );
+
+    // Si videoToUpload no es null, significa que este proceso consiguió "reservar" un video para subirlo.
+    if (videoToUpload) {
+        console.log(`[CRON] Video ${videoToUpload._id} seleccionado para subir. Empezando proceso de subida.`);
+        await uploadToYouTube(videoToUpload);
     } else {
-        console.log('--- No hay videos listos para subir a YouTube.');
+        // Si no se encontró un video, puede ser por dos razones:
+        // 1. No hay videos con estado 'edited'.
+        // 2. Otro proceso ya tomó el video que estaba disponible.
+        // Este log ayuda a saber qué está pasando.
+        const isUploading = await Video.findOne({ status: 'processing_upload' });
+        if (isUploading) {
+            console.log(`[CRON] Ya hay otro proceso subiendo el video ${isUploading._id}. Esperando al siguiente ciclo.`);
+        } else {
+            console.log('[CRON] No hay videos listos para subir a YouTube.');
+        }
     }
 });
 
 
-// --- LÓGICA DE SUBIDA A YOUTUBE ---
+// --- LÓGICA DE SUBIDA A YOUTUBE (MODIFICADA) ---
 async function uploadToYouTube(video) {
     console.log(`🚀 Empezando la subida a YouTube de: "${video.title}"`);
-    await Video.findByIdAndUpdate(video._id, { status: 'processing_upload' });
+    // --- LÍNEA ELIMINADA ---
+    // Ya no es necesario cambiar el estado aquí, porque lo hicimos de forma atómica en el cron job.
+    // await Video.findByIdAndUpdate(video._id, { status: 'processing_upload' });
 
     try {
         const driveStream = await drive.files.get(
             { fileId: video.driveFileId, alt: 'media' },
             { responseType: 'stream' }
         );
+
         const response = await youtube.videos.insert({
             part: 'snippet,status',
             requestBody: {
@@ -270,12 +292,17 @@ async function uploadToYouTube(video) {
             },
             media: { body: driveStream.data },
         });
+
         const youtubeUrl = `https://www.youtube.com/watch?v=${response.data.id}`;
         await Video.findByIdAndUpdate(video._id, { status: 'uploaded', youtubeUrl: youtubeUrl });
         console.log(`✅ Video "${video.title}" subido con éxito: ${youtubeUrl}`);
         await deleteFromDrive(video.driveFileId);
+
     } catch (error) {
-        console.error(`❌ Error subiendo "${video.title}" a YouTube:`, error.message);
+        // --- MEJORA EN EL MANEJO DE ERRORES ---
+        // Al usar console.error(error) en vez de error.message, obtendrás más detalles
+        // del error en la consola, lo que facilita la depuración.
+        console.error(`❌ Error subiendo "${video.title}" a YouTube:`, error);
         await Video.findByIdAndUpdate(video._id, { status: 'failed' });
     }
 }
@@ -314,6 +341,57 @@ app.get('/api/stats', checkAuth, async (req, res) => {
     ]);
     res.json({ totalUploaded, totalProcessing, totalPending, uploadsByUser });
 });
+
+
+// ... (todo tu código existente de NaoClips) ...
+
+// --- INICIO DEL CÓDIGO KEEP-ALIVE PARA NAOCLIPS ---
+const { CronJob } = require('cron');
+const axios = require('axios');
+
+// La URL de tu pinger-bot que leeremos de las variables de entorno
+const PINGER_BOT_URL = process.env.PINGER_BOT_URL;
+const PING_SECRET = process.env.PING_SECRET; // El mismo secreto
+
+// 1. Endpoint para RECIBIR pings del Pinger Bot
+app.get('/ping/:secret', (req, res) => {
+    if (req.params.secret !== PING_SECRET) {
+        console.warn('⚠️ Intento de ping con secreto incorrecto.');
+        return res.status(403).send('Acceso denegado.');
+    }
+    console.log(`✅ Ping recibido de Pinger Bot a las ${new Date().toLocaleTimeString()}`);
+    res.status(200).send('Pong desde NaoClips!');
+});
+
+// 2. Función para ENVIAR pings al Pinger Bot
+const sendPingToBot = async () => {
+    if (!PINGER_BOT_URL || !PING_SECRET) {
+        console.log('ℹ️ No se ha configurado PINGER_BOT_URL o PING_SECRET. El ping está desactivado.');
+        return;
+    }
+    try {
+        const url_completa = `${PINGER_BOT_URL}/ping/${PING_SECRET}`;
+        console.log(`PING --> Enviando ping a Pinger Bot en ${url_completa}`);
+        await axios.get(url_completa);
+        console.log(`PONG <-- Respuesta recibida de Pinger Bot.`);
+    } catch (error) {
+        console.error(`❌ Error al enviar el ping a Pinger Bot: ${error.message}`);
+    }
+};
+
+// 3. Tarea programada (Cron Job) para ejecutar la función
+const keepAliveJob = new CronJob(
+    '*/14 * * * *', // Cada 14 minutos
+    sendPingToBot,
+    null,
+    true,
+    'America/Asuncion'
+);
+
+console.log(`🔄️ Keep-alive activado. Pingueando a ${PINGER_BOT_URL} cada 14 minutos.`);
+console.log(`▶️ El próximo ping será a las: ${keepAliveJob.nextDate().toLocaleTimeString()}`);
+
+// --- FIN DEL CÓDIGO KEEP-ALIVE ---
 
 
 // Iniciar el servidor

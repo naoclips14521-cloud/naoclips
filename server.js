@@ -389,7 +389,8 @@ const keepAliveJob = new CronJob(
 );
 
 console.log(`🔄️ Keep-alive activado. Pingueando a ${PINGER_BOT_URL} cada 14 minutos.`);
-console.log(`▶️ El próximo ping será a las: ${keepAliveJob.nextDate().toLocaleTimeString()}`);
+console.log(`▶️ El próximo ping será a las: ${keepAliveJob.nextDate().toJSDate().toLocaleTimeString()}`);
+
 
 // --- FIN DEL CÓDIGO KEEP-ALIVE ---
 
